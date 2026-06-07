@@ -104,6 +104,10 @@ def main() -> None:
             "nayin_wuxing": bazi.nayin_wuxing,
             "tiangan_list": bazi.tiangan_list,
             "dizhi_list": bazi.dizhi_list,
+            "shishen_list": bazi.shishen_list,
+            "minggua": bazi.minggua,
+            "shengxiao": bazi.shengxiao,
+            "pattern": bazi.pattern,
         }
         all_users.append(user_dict)
 

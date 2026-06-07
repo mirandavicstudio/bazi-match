@@ -17,6 +17,7 @@ const app = createApp({
     const matchedCount = ref(0);         // 已匹配人数
     const showDetail = ref(false);        // 是否显示详情弹窗
     const detailData = ref({});          // 当前查看的详情数据
+    const detailTab = ref('overview');   // 详情弹窗 Tab：'overview' | 'comparison'
     const errorMessage = ref('');        // 错误消息
     const loading = ref(false);           // 加载状态
     const currentTipIndex = ref(0);     // 当前提示语索引
@@ -82,7 +83,7 @@ const app = createApp({
     });
     
     const userBaziDisplay = computed(() => {
-      if (!userBazi.value) return { pillars: [], dayMaster: '', wuxingDist: {} };
+      if (!userBazi.value) return { pillars: [], dayMaster: '', wuxingDist: {}, pattern: '' };
       const b = userBazi.value;
       return {
         pillars: [
@@ -93,6 +94,7 @@ const app = createApp({
         ],
         dayMaster: b.day_master,
         wuxingDist: b.wuxing_dist,
+        pattern: b.pattern || '',
       };
     });
     
@@ -378,6 +380,65 @@ const app = createApp({
     }
     
     /**
+     * 切换详情弹窗 Tab
+     */
+    function switchDetailTab(tab) {
+      detailTab.value = tab;
+    }
+    
+    /**
+     * 获取四柱对比数据（computed，避免模板中多次调用）
+     * 返回 Person A 和 Person B 的四柱数据，包含十神标注
+     */
+    const comparisonData = computed(() => {
+      const userData = userBazi.value;
+      const matchData = detailData.value ? detailData.value.sizhu : null;
+      
+      if (!userData || !matchData) return { personA: null, personB: null };
+      
+      // 构建 Person A 的四柱数据
+      const personA = {
+        tiangan_list: userData.tiangan_list || [],
+        dizhi_list: userData.dizhi_list || [],
+        shishen_list: userData.shishen_list || [],
+        minggua: userData.minggua || {},
+        shengxiao: userData.shengxiao || '',
+        pattern: userData.pattern || '',
+      };
+      
+      // 构建 Person B 的四柱数据
+      const personB = {
+        tiangan_list: matchData.tiangan_list || [],
+        dizhi_list: matchData.dizhi_list || [],
+        shishen_list: matchData.shishen_list || [],
+        minggua: matchData.minggua || {},
+        shengxiao: matchData.shengxiao || '',
+        pattern: matchData.pattern || '',
+      };
+      
+      return { personA, personB };
+    });
+    
+    /**
+     * 格式化柱子显示（天干【十神】地支【十神】）
+     */
+    function formatPillar(tiangan, dizhi, shishenItem) {
+      if (!shishenItem) return tiangan + '  ' + dizhi;
+      const tg_shishen = shishenItem.gan_shishen || '';
+      const dz_shishen = shishenItem.zhi_shishen || '';
+      return tiangan + '【' + tg_shishen + '】' + dizhi + '【' + dz_shishen + '】';
+    }
+    
+    /**
+     * 获取天干五行颜色类名
+     */
+    function wuxingClassOf(gan) {
+      if (!gan) return '';
+      const m = { '甲':'mu','乙':'mu','丙':'huo','丁':'huo','戊':'tu','己':'tu','庚':'jin','辛':'jin','壬':'shui','癸':'shui' };
+      return 'wx-' + (m[gan] || '');
+    }
+
+    /**
      * 键盘事件处理
      */
     function handleKeydown(e) {
@@ -473,15 +534,19 @@ const app = createApp({
      */
     function buildHourItems() {
       wheelHours = [];
-      const labels = [
-        '子时 (23:00-01:00)', '丑时 (01:00-03:00)', '寅时 (03:00-05:00)',
-        '卯时 (05:00-07:00)', '辰时 (07:00-09:00)', '巳时 (09:00-11:00)',
-        '午时 (11:00-13:00)', '未时 (13:00-15:00)', '申时 (15:00-17:00)',
-        '酉时 (17:00-19:00)', '戌时 (19:00-21:00)', '亥时 (21:00-23:00)',
+      const names = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
+      const ranges = [
+        '23:00-01:00', '01:00-03:00', '03:00-05:00',
+        '05:00-07:00', '07:00-09:00', '09:00-11:00',
+        '11:00-13:00', '13:00-15:00', '15:00-17:00',
+        '17:00-19:00', '19:00-21:00', '21:00-23:00',
       ];
       const values = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22];
       for (let i = 0; i < 12; i++) {
-        wheelHours.push({ value: values[i], label: labels[i] });
+        wheelHours.push({
+          value: values[i],
+          label: '<span class="hour-name">' + names[i] + '时</span><span class="hour-range">' + ranges[i] + '</span>'
+        });
       }
     }
     
@@ -906,6 +971,7 @@ const app = createApp({
       matchedCount,
       showDetail,
       detailData,
+      detailTab,
       errorMessage,
       loading,
       currentTip,
@@ -924,6 +990,7 @@ const app = createApp({
       // 计算属性
       isFormValid,
       userBaziDisplay,
+      comparisonData,
       
       // 滚轮选择器
       wheelContainer,
@@ -939,6 +1006,9 @@ const app = createApp({
       resetMatch,
       openDetail,
       closeDetail,
+      switchDetailTab,
+      formatPillar,
+      wuxingClassOf,
       forceShowResult,
       scoreColor,
       getScoreColor,

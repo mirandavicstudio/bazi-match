@@ -41,9 +41,26 @@ def init_db() -> None:
                 nayin TEXT NOT NULL,
                 nayin_wuxing TEXT NOT NULL,
                 tiangan_list TEXT NOT NULL,
-                dizhi_list TEXT NOT NULL
+                dizhi_list TEXT NOT NULL,
+                shishen_list TEXT NOT NULL DEFAULT '[]',
+                minggua TEXT NOT NULL DEFAULT '',
+                shengxiao TEXT NOT NULL DEFAULT '',
+                pattern TEXT NOT NULL DEFAULT ''
             )
         """)
+        
+        # 添加新增列（如果不存在）
+        for col_sql in [
+            "ALTER TABLE users ADD COLUMN shishen_list TEXT NOT NULL DEFAULT '[]'",
+            "ALTER TABLE users ADD COLUMN minggua TEXT NOT NULL DEFAULT ''",
+            "ALTER TABLE users ADD COLUMN shengxiao TEXT NOT NULL DEFAULT ''",
+            "ALTER TABLE users ADD COLUMN pattern TEXT NOT NULL DEFAULT ''",
+        ]:
+            try:
+                conn.execute(col_sql)
+            except sqlite3.OperationalError:
+                pass  # 列已存在
+        
         conn.execute("CREATE INDEX IF NOT EXISTS idx_users_gender ON users(gender)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_users_birth_year ON users(birth_year)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_users_day_master ON users(day_master)")
@@ -56,15 +73,27 @@ def insert_user(user_dict: dict[str, Any]) -> int:
     """插入单条用户记录，返回自增 ID。"""
     conn = get_conn()
     try:
+        # 需要 JSON 序列化的字段
+        shishen_list = user_dict.get("shishen_list", [])
+        if isinstance(shishen_list, list):
+            shishen_list = json.dumps(shishen_list, ensure_ascii=False)
+        
+        minggua = user_dict.get("minggua", {})
+        if isinstance(minggua, dict):
+            minggua = json.dumps(minggua, ensure_ascii=False)
+        
+        pattern = user_dict.get("pattern", "")
+        if not isinstance(pattern, str):
+            pattern = str(pattern)
+        
         cursor = conn.execute(
-            """
-            INSERT INTO users (
+            """INSERT INTO users (
                 name, gender, birth_year, birth_month, birth_day,
                 birth_hour, birth_minute, year_pillar, month_pillar,
                 day_pillar, hour_pillar, day_master, wuxing_dist,
-                nayin, nayin_wuxing, tiangan_list, dizhi_list
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
+                nayin, nayin_wuxing, tiangan_list, dizhi_list,
+                shishen_list, minggua, shengxiao, pattern
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 user_dict["name"],
                 user_dict["gender"],
@@ -83,6 +112,10 @@ def insert_user(user_dict: dict[str, Any]) -> int:
                 user_dict["nayin_wuxing"],
                 user_dict["tiangan_list"] if isinstance(user_dict["tiangan_list"], str) else json.dumps(user_dict["tiangan_list"], ensure_ascii=False),
                 user_dict["dizhi_list"] if isinstance(user_dict["dizhi_list"], str) else json.dumps(user_dict["dizhi_list"], ensure_ascii=False),
+                shishen_list,
+                minggua,
+                user_dict.get("shengxiao", ""),
+                pattern,
             ),
         )
         conn.commit()
@@ -99,6 +132,19 @@ def batch_insert_users(users_list: list[dict[str, Any]]) -> int:
     try:
         rows = []
         for u in users_list:
+            # 需要 JSON 序列化的字段
+            shishen_list = u.get("shishen_list", [])
+            if isinstance(shishen_list, list):
+                shishen_list = json.dumps(shishen_list, ensure_ascii=False)
+            
+            minggua = u.get("minggua", {})
+            if isinstance(minggua, dict):
+                minggua = json.dumps(minggua, ensure_ascii=False)
+            
+            pattern = u.get("pattern", "")
+            if not isinstance(pattern, str):
+                pattern = str(pattern)
+            
             rows.append((
                 u["name"], u["gender"], u["birth_year"], u["birth_month"],
                 u["birth_day"], u["birth_hour"], u.get("birth_minute", 0),
@@ -108,16 +154,19 @@ def batch_insert_users(users_list: list[dict[str, Any]]) -> int:
                 u["nayin"], u["nayin_wuxing"],
                 u["tiangan_list"] if isinstance(u["tiangan_list"], str) else json.dumps(u["tiangan_list"], ensure_ascii=False),
                 u["dizhi_list"] if isinstance(u["dizhi_list"], str) else json.dumps(u["dizhi_list"], ensure_ascii=False),
+                shishen_list,
+                minggua,
+                u.get("shengxiao", ""),
+                pattern,
             ))
         conn.executemany(
-            """
-            INSERT INTO users (
+            """INSERT INTO users (
                 name, gender, birth_year, birth_month, birth_day,
                 birth_hour, birth_minute, year_pillar, month_pillar,
                 day_pillar, hour_pillar, day_master, wuxing_dist,
-                nayin, nayin_wuxing, tiangan_list, dizhi_list
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
+                nayin, nayin_wuxing, tiangan_list, dizhi_list,
+                shishen_list, minggua, shengxiao, pattern
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             rows,
         )
         conn.commit()
@@ -129,9 +178,12 @@ def batch_insert_users(users_list: list[dict[str, Any]]) -> int:
 def _row_to_dict(row: sqlite3.Row) -> dict[str, Any]:
     """将 sqlite3.Row 转为 dict，并反序列化 JSON 字段。"""
     d = dict(row)
-    for key in ("wuxing_dist", "tiangan_list", "dizhi_list"):
+    for key in ("wuxing_dist", "tiangan_list", "dizhi_list", "shishen_list", "minggua"):
         if key in d and isinstance(d[key], str):
-            d[key] = json.loads(d[key])
+            try:
+                d[key] = json.loads(d[key])
+            except (json.JSONDecodeError, TypeError):
+                pass
     return d
 
 
@@ -147,10 +199,10 @@ def get_all_users() -> list[dict[str, Any]]:
 
 def get_users_by_gender(gender: str) -> list[dict[str, Any]]:
     """根据性别获取用户列表。
-
+    
     Args:
         gender: 性别 ("男" / "女")
-
+    
     Returns:
         符合条件的用户列表
     """
@@ -164,10 +216,10 @@ def get_users_by_gender(gender: str) -> list[dict[str, Any]]:
 
 def get_users_exclude_gender(gender: str) -> list[dict[str, Any]]:
     """获取排除指定性别外的所有用户（用于异性匹配）。
-
+    
     Args:
         gender: 要排除的性别 ("男" / "女")
-
+    
     Returns:
         异性用户列表
     """

@@ -1,5 +1,19 @@
 """pytest 公共 fixture — mock BaziData 工厂函数"""
 
+import sys
+import os
+
+# 在导入任何 backend 模块之前，先 mock sxtwl
+# 将 mock_sxtwl 模块的路径加入 sys.path
+_mock_path = os.path.join(os.path.dirname(__file__))
+if _mock_path not in sys.path:
+    sys.path.insert(0, _mock_path)
+
+# 创建 mock sxtwl 模块
+from mock_sxtwl import Day
+sys.modules['sxtwl'] = type(sys)('sxtwl')
+sys.modules['sxtwl'].Day = Day
+
 import pytest
 from backend.models import BaziData
 

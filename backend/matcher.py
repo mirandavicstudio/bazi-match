@@ -2,6 +2,7 @@
 
 from backend import config
 from backend.models import BaziData, DimensionScore, MatchResult
+from backend.paipan import calc_minggua_relation, calc_shengxiao_relation
 
 
 # ---------------------------------------------------------------------------
@@ -455,10 +456,24 @@ def calc_match(bazi_a: BaziData, bazi_b: BaziData) -> MatchResult:
     total_score = calc_total_score(dimensions)
     grade, grade_stars = map_grade(total_score)
 
+    # 计算命卦关系（如果双方都有命卦数据）
+    minggua_relation = {}
+    if bazi_a.minggua and bazi_b.minggua:
+        minggua_relation = calc_minggua_relation(bazi_a.minggua, bazi_b.minggua)
+
+    # 计算生肖关系（取年支）
+    year_zhi_a = bazi_a.dizhi_list[0] if bazi_a.dizhi_list else ""
+    year_zhi_b = bazi_b.dizhi_list[0] if bazi_b.dizhi_list else ""
+    shengxiao_relation = {}
+    if year_zhi_a and year_zhi_b:
+        shengxiao_relation = calc_shengxiao_relation(year_zhi_a, year_zhi_b)
+
     return MatchResult(
         total_score=total_score,
         grade=grade,
         grade_stars=grade_stars,
         dimensions=dimensions,
         interpretation="",
+        minggua_relation=minggua_relation,
+        shengxiao_relation=shengxiao_relation,
     )

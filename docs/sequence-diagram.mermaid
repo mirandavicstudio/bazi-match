@@ -1,57 +1,40 @@
 sequenceDiagram
-    actor User as 用户浏览器
-    participant FE as 前端 (Vue3)
-    participant API as FastAPI (main.py)
-    participant PP as 排盘模块 (paipan.py)
-    participant DB as 数据库层 (db.py)
-    participant MT as 匹配引擎 (matcher.py)
-    participant IT as 解读生成 (interpreter.py)
-    participant SQLite as SQLite (bazi.db)
-
-    User->>FE: 输入出生日期/时辰/性别，点击"开始匹配"
-    FE->>FE: 表单验证通过
-    FE->>FE: state = 'loading'，启动假进度条
-    FE->>API: POST /api/match {birth_year, month, day, hour, minute, gender, top_n}
-
-    API->>API: Pydantic 校验请求体
-    API->>PP: get_sizhu(year, month, day, hour, minute)
-    PP->>PP: 处理子时跨日 (hour∈[23,0] → day+1)
-    PP->>PP: sxtwl.fromSolar() 获取 Day 对象
-    PP->>PP: 提取四柱 + 统计五行 + 计算纳音
-    PP-->>API: BaziData (用户八字)
-
-    API->>DB: get_all_users()
-    DB->>SQLite: SELECT * FROM users
-    SQLite-->>DB: 1W 行用户数据
-    DB-->>API: list[dict] (全量用户)
-
-    loop 遍历每个用户 (1W 次)
-        API->>MT: calc_match(user_bazi, target_bazi)
-        MT->>MT: calc_dizhi_hechong() → 30%
-        MT->>MT: calc_wuxing_complement() → 25%
-        MT->>MT: calc_tiangan_he() → 15%
-        MT->>MT: calc_rizhu_relation() → 15%
-        MT->>MT: calc_nayin_score() → 10%
-        MT->>MT: calc_shensha() → 5%
-        MT->>MT: calc_total_score() 加权汇总
-        MT->>MT: map_grade() 等级映射
-        MT-->>API: MatchResult
-    end
-
-    API->>API: 按 total_score 降序排序，取 Top-N
-
-    loop Top-N 结果
-        API->>IT: generate_interpretation(match_result)
-        IT->>IT: 选择模板 + 填充变量
-        IT-->>API: 解读文案 str
-    end
-
-    API-->>FE: MatchResponse {user_bazi, matches, total_time_ms}
-
-    FE->>FE: progress = 100%，停留 300ms
-    FE->>FE: state = 'result'，渲染结果卡片
-    FE-->>User: 展示匹配结果
-
-    User->>FE: 点击"查看合盘详情"
-    FE->>FE: showDetail = true，渲染弹窗
-    FE-->>User: 展示六维度进度条 + 解读文案
+    participant User as 用户
+    participant Frontend as 前端Vue应用
+    participant API as 后端API
+    participant PaiPan as 排盘服务
+    participant Matcher as 合盘服务
+    
+    Note over User, Matcher: 场景1：查看单人八字详情（含格局）
+    User->>Frontend: 输入出生信息
+    Frontend->>API: POST /api/paipan
+    API->>PaiPan: get_sizhu(datetime, gender)
+    PaiPan->>PaiPan: 计算四柱
+    PaiPan->>PaiPan: calc_shishen_list(sizhu)
+    PaiPan->>PaiPan: calc_pattern(sizhu, shishen_list)
+    PaiPan->>PaiPan: calc_mingua(year)
+    PaiPan->>PaiPan: calc_shengxiao(year)
+    PaiPan-->>API: 返回完整BaziChart
+    API-->>Frontend: 返回JSON数据
+    Frontend->>Frontend: 渲染八字卡片（含格局）
+    Frontend-->>User: 显示详情（Tab视图）
+    
+    Note over User, Matcher: 场景2：查看合盘对比（含命卦生肖关系）
+    User->>Frontend: 输入两人出生信息
+    Frontend->>API: POST /api/match
+    API->>PaiPan: 分别为两人get_sizhu()
+    PaiPan-->>API: 返回两个BaziChart
+    API->>Matcher: calc_match(person1, person2)
+    Matcher->>Matcher: calc_mingua_relation()
+    Matcher->>Matcher: calc_shengxiao_relation()
+    Matcher-->>API: 返回MatchResult
+    API-->>Frontend: 返回JSON数据
+    Frontend->>Frontend: switchTab('contrast')
+    Frontend->>Frontend: 渲染双盘对比视图
+    Frontend-->>User: 显示合盘对比（含关系判定）
+    
+    Note over User, Matcher: 场景3：Tab切换
+    User->>Frontend: 点击"综合对比"Tab
+    Frontend->>Frontend: switchTab('contrast')
+    Frontend->>Frontend: renderContrastView()
+    Frontend-->>User: 显示对比视图

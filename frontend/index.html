@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="八字合盘匹配系统 - 输入出生信息，从万人库中寻找与你八字最合的人">
-  <meta name="theme-color" content="#6366f1">
+  <meta name="theme-color" content="#0a0a1a">
   <title>八字合盘匹配 - 寻找命中注定的缘分</title>
   
   <!-- ====== 外部资源 ====== -->
@@ -12,17 +12,71 @@
   <script src="https://cdn.jsdelivr.net/npm/axios"></script>
   
   <!-- ====== 样式文件 ====== -->
-  <link rel="stylesheet" href="css/design-system.css">
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/design-system.css?v=5">
+  <link rel="stylesheet" href="css/style.css?v=5">
   
-  <!-- ====== Tailwind CSS (备用) ====== -->
+  <!-- ====== Tailwind 暗色主题配置 ====== -->
+  <script>
+    tailwind.config = {
+      theme: {
+        colors: {
+          transparent: 'transparent',
+          current: 'currentColor',
+          black: '#000000',
+          white: '#ffffff',
+          gray: {
+            50: '#1a1a3a',
+            100: '#12122e',
+            200: 'rgba(255,255,255,0.08)',
+            300: 'rgba(255,255,255,0.15)',
+            400: 'rgba(255,255,255,0.45)',
+            500: 'rgba(255,255,255,0.60)',
+            600: 'rgba(255,255,255,0.70)',
+            700: 'rgba(255,255,255,0.85)',
+            800: 'rgba(255,255,255,0.95)',
+            900: '#ffffff',
+          },
+          indigo: {
+            50:  'rgba(99,102,241,0.05)',
+            100: 'rgba(99,102,241,0.10)',
+            200: 'rgba(99,102,241,0.15)',
+            300: 'rgba(99,102,241,0.25)',
+            400: '#818cf8',
+            500: '#6366f1',
+            600: '#4f46e5',
+            700: '#4338ca',
+            800: 'rgba(99,102,241,0.60)',
+            900: 'rgba(99,102,241,0.80)',
+          },
+          purple: {
+            500: '#8b5cf6',
+            600: '#7c3aed',
+          },
+          rose: {
+            400: '#fb7185',
+            500: '#f43f5e',
+            600: '#e11d48',
+          },
+          amber: {
+            400: '#fbbf24',
+            500: '#f59e0b',
+            600: '#d97706',
+          },
+          emerald: { 400: '#4ade80', 500: '#10b981' },
+          cyan:   { 400: '#22d3ee', 500: '#06b6d4' },
+        }
+      }
+    }
+  </script>
   <script src="https://cdn.tailwindcss.com"></script>
   
   <!-- ====== 预连接 (性能优化) ====== -->
   <link rel="preconnect" href="http://localhost:8000">
 </head>
 
-<body class="bg-gradient-page min-h-screen">
+<body class="min-h-screen">
+  <!-- 星空粒子 Canvas -->
+  <canvas id="star-canvas"></canvas>
   <div id="app" class="container px-4 py-8 sm:px-6 lg:px-8">
     
     <!-- 调试状态显示（开发时可见） -->
@@ -145,7 +199,7 @@
             <span class="text-red-500">*</span>
           </label>
           <div class="date-wheel-container date-wheel-single">
-            <div class="date-wheel-col" ref="hourCol" aria-label="时辰">
+            <div class="date-wheel-col date-wheel-col-hour" ref="hourCol" aria-label="时辰">
               <div class="date-wheel-mask-top"></div>
               <div class="date-wheel-mask-bottom"></div>
               <div class="date-wheel-highlight"></div>
@@ -325,24 +379,33 @@
     <!-- ==================== 状态3：结果展示 ==================== -->
     <div v-if="state === 'result'" class="animate-fade-in-up">
       
-      <!-- 用户八字信息卡片 -->
-      <div class="card-premium p-6 md:p-8 mb-8">
-        <!-- 标题区 -->
-        <div class="flex items-center justify-between mb-6">
-          <div class="flex items-center gap-3">
-            <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-2xl shadow-lg shadow-indigo-200">
-              ☯
+        <!-- 用户八字信息卡片 -->
+        <div class="card-premium p-6 md:p-8 mb-8">
+          <!-- 标题区 -->
+          <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center gap-3">
+              <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-2xl shadow-lg shadow-indigo-200">
+                ☯
+              </div>
+              <div>
+                <h2 class="text-2xl font-bold text-gray-800">你的八字信息</h2>
+                <p class="text-sm text-gray-500">基于出生时间计算</p>
+              </div>
             </div>
-            <div>
-              <h2 class="text-2xl font-bold text-gray-800">你的八字信息</h2>
-              <p class="text-sm text-gray-500">基于出生时间计算</p>
+            <!-- 日主标签 -->
+            <div v-if="userBaziDisplay.dayMaster" class="px-4 py-2 bg-gradient-to-r from-amber-400 to-orange-500 text-white rounded-xl font-bold text-lg shadow-lg shadow-amber-200">
+              日主 {{ userBaziDisplay.dayMaster }}
             </div>
           </div>
-          <!-- 日主标签 -->
-          <div v-if="userBaziDisplay.dayMaster" class="px-4 py-2 bg-gradient-to-r from-amber-400 to-orange-500 text-white rounded-xl font-bold text-lg shadow-lg shadow-amber-200">
-            日主 {{ userBaziDisplay.dayMaster }}
+          
+          <!-- 格局信息 -->
+          <div v-if="userBaziDisplay.pattern" class="mb-6 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-2xl border border-purple-100">
+            <div class="flex items-center gap-2">
+              <span class="w-8 h-8 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center text-sm">☯</span>
+              <span class="text-sm text-gray-600">格局：</span>
+              <span class="text-lg font-bold text-purple-700">{{ userBaziDisplay.pattern }}</span>
+            </div>
           </div>
-        </div>
 
         <!-- 四柱展示 -->
         <div class="grid grid-cols-4 gap-4 mb-6">
@@ -504,7 +567,7 @@
       aria-modal="true"
       aria-labelledby="detail-title"
     >
-      <div class="modal-content">
+      <div class="modal-content" :class="{ 'modal-content-wide': detailTab === 'comparison' }">
         
         <!-- 装饰性顶部渐变背景 -->
         <div class="relative bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 px-6 py-8 sm:px-8 sm:py-10">
@@ -534,16 +597,36 @@
             </div>
           </div>
 
-          <!-- 装饰性波浪 -->
+        <!-- 装饰性波浪 -->
           <div class="absolute bottom-0 left-0 right-0">
             <svg viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
               <path d="M0,120 L1440,120 L1440,0 C1200,60 960,90 720,60 C480,30 240,0 0,0 L0,120 Z" fill="white"/>
             </svg>
           </div>
         </div>
+        
+        <!-- Tab 切换按钮 -->
+        <div class="px-6 py-4 sm:px-8 border-b border-gray-100">
+          <div class="flex gap-2 bg-gray-100 rounded-2xl p-1.5">
+            <button
+              @click="switchDetailTab('overview')"
+              class="flex-1 py-3 px-4 rounded-xl font-semibold text-sm transition-all duration-300"
+              :class="detailTab === 'overview' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'"
+            >
+              📊 合盘首页
+            </button>
+            <button
+              @click="switchDetailTab('comparison')"
+              class="flex-1 py-3 px-4 rounded-xl font-semibold text-sm transition-all duration-300"
+              :class="detailTab === 'comparison' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'"
+            >
+              ⚖️ 综合对比
+            </button>
+          </div>
+        </div>
 
         <!-- 内容区域 -->
-        <div class="px-6 py-6 sm:px-8 sm:py-8">
+        <div v-if="detailTab === 'overview'" class="px-6 py-6 sm:px-8 sm:py-8">
           
           <!-- 六维度评分 -->
           <div class="mb-8">
@@ -627,9 +710,122 @@
               </div>
             </div>
           </div>
+        </div>
+        
+        <!-- 综合对比 Tab -->
+        <div v-if="detailTab === 'comparison'" class="px-4 py-5 sm:px-6 sm:py-6">
+          <h3 class="text-lg font-bold text-gray-800 mb-5 flex items-center">
+            <span class="w-8 h-8 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center mr-2">⚖️</span>
+            四柱八字对比
+          </h3>
 
-          <!-- 操作按钮组 -->
-          <div class="mt-6 flex gap-3">
+          <!-- ====== 八字排盘对比表（双盘式） ====== -->
+          <div class="bazi-compare-wrapper">
+            <!-- 左盘：你 -->
+            <div class="bazi-pan">
+              <div class="bazi-pan-name">
+                你（{{ comparisonData.personA?.tiangan_list?.[2] || '-' }}日主）
+              </div>
+              <div class="bazi-pan-grid">
+                <!-- 表头 -->
+                <div class="bazi-pan-th">年柱</div>
+                <div class="bazi-pan-th">月柱</div>
+                <div class="bazi-pan-th">日柱</div>
+                <div class="bazi-pan-th">时柱</div>
+                <!-- 天干行 -->
+                <div v-for="(pillar, idx) in (comparisonData.personA?.shishen_list || [])" :key="'ag-'+idx" class="bazi-pan-cell bazi-pan-cell-gan">
+                  <span class="bazi-pan-gan" :class="wuxingClassOf(comparisonData.personA.tiangan_list[idx])">{{ comparisonData.personA.tiangan_list[idx] || '-' }}</span>
+                  <span class="bazi-pan-ss">{{ pillar.gan_shishen }}</span>
+                </div>
+                <!-- 地支行 -->
+                <div v-for="(pillar, idx) in (comparisonData.personA?.shishen_list || [])" :key="'az-'+idx" class="bazi-pan-cell bazi-pan-cell-zhi">
+                  <span class="bazi-pan-zhi">{{ comparisonData.personA.dizhi_list[idx] || '-' }}</span>
+                  <span class="bazi-pan-ss">{{ pillar.zhi_shishen }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 中间分隔 -->
+            <div class="bazi-pan-sep"></div>
+
+            <!-- 右盘：TA -->
+            <div class="bazi-pan">
+              <div class="bazi-pan-name">
+                {{ detailData.name || 'TA' }}（{{ comparisonData.personB?.tiangan_list?.[2] || '-' }}日主）
+              </div>
+              <div class="bazi-pan-grid">
+                <!-- 表头 -->
+                <div class="bazi-pan-th">年柱</div>
+                <div class="bazi-pan-th">月柱</div>
+                <div class="bazi-pan-th">日柱</div>
+                <div class="bazi-pan-th">时柱</div>
+                <!-- 天干行 -->
+                <div v-for="(pillar, idx) in (comparisonData.personB?.shishen_list || [])" :key="'bg-'+idx" class="bazi-pan-cell bazi-pan-cell-gan">
+                  <span class="bazi-pan-gan" :class="wuxingClassOf(comparisonData.personB.tiangan_list[idx])">{{ comparisonData.personB.tiangan_list[idx] || '-' }}</span>
+                  <span class="bazi-pan-ss">{{ pillar.gan_shishen }}</span>
+                </div>
+                <!-- 地支行 -->
+                <div v-for="(pillar, idx) in (comparisonData.personB?.shishen_list || [])" :key="'bz-'+idx" class="bazi-pan-cell bazi-pan-cell-zhi">
+                  <span class="bazi-pan-zhi">{{ comparisonData.personB.dizhi_list[idx] || '-' }}</span>
+                  <span class="bazi-pan-ss">{{ pillar.zhi_shishen }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ====== 附加信息：命卦 / 生肖 / 格局 ====== -->
+          <div class="bazi-meta-grid">
+            <!-- 命卦 -->
+            <div class="bazi-meta-card">
+              <div class="bazi-meta-icon bg-cyan-100 text-cyan-600">☰</div>
+              <div class="bazi-meta-label">命卦</div>
+              <div class="bazi-meta-pair">
+                <span class="bazi-meta-val text-indigo-600">{{ comparisonData.personA?.minggua?.gua || '-' }}（{{ comparisonData.personA?.minggua?.type || '-' }}）</span>
+                <span class="bazi-meta-vs">vs</span>
+                <span class="bazi-meta-val text-rose-600">{{ comparisonData.personB?.minggua?.gua || '-' }}（{{ comparisonData.personB?.minggua?.type || '-' }}）</span>
+              </div>
+            </div>
+
+            <!-- 生肖 -->
+            <div class="bazi-meta-card">
+              <div class="bazi-meta-icon bg-amber-100 text-amber-600">🐉</div>
+              <div class="bazi-meta-label">生肖</div>
+              <div class="bazi-meta-pair">
+                <span class="bazi-meta-val text-indigo-600">{{ comparisonData.personA?.shengxiao || '-' }}</span>
+                <span class="bazi-meta-vs">vs</span>
+                <span class="bazi-meta-val text-rose-600">{{ comparisonData.personB?.shengxiao || '-' }}</span>
+              </div>
+            </div>
+
+            <!-- 格局 -->
+            <div class="bazi-meta-card">
+              <div class="bazi-meta-icon bg-purple-100 text-purple-600">☯</div>
+              <div class="bazi-meta-label">格局</div>
+              <div class="bazi-meta-pair">
+                <span class="bazi-meta-val text-indigo-600">{{ comparisonData.personA?.pattern || '-' }}</span>
+                <span class="bazi-meta-vs">vs</span>
+                <span class="bazi-meta-val text-rose-600">{{ comparisonData.personB?.pattern || '-' }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 对比总结 -->
+          <div class="bazi-summary">
+            <h4 class="font-bold text-amber-800 mb-3">💡 对比要点</h4>
+            <ul class="text-sm text-gray-700 space-y-2">
+              <li v-if="comparisonData.personA && comparisonData.personB && comparisonData.personA.minggua.type === comparisonData.personB.minggua.type">
+                ✅ 命卦同属{{ comparisonData.personA.minggua.type }}，性格相投
+              </li>
+              <li v-else-if="comparisonData.personA && comparisonData.personB">
+                ℹ️ 命卦{{ comparisonData.personA.minggua.type }}与{{ comparisonData.personB.minggua.type }}互补
+              </li>
+            </ul>
+          </div>
+        </div>
+        
+        <!-- 操作按钮组（始终可见） -->
+        <div class="px-6 py-6 sm:px-8 sm:py-8 border-t border-gray-100">
+          <div class="flex gap-3">
             <button
               @click="closeDetail"
               class="flex-1 py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 transition-all duration-200 shadow-lg shadow-indigo-200"
@@ -646,7 +842,7 @@
         </div>
       </div>
     </div>
-
+    
     <!-- ==================== 错误提示 ==================== -->
     <div
       v-if="errorMessage"
@@ -660,6 +856,7 @@
   </div>
 
   <!-- ====== 应用脚本 ====== -->
+  <script src="js/particles.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

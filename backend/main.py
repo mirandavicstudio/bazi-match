@@ -19,7 +19,7 @@ from backend.models import (
     MatchedUser,
     DimensionScore,
 )
-from backend.paipan import get_sizhu
+from backend.paipan import get_sizhu, calc_pattern
 
 # 配置日志
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -73,10 +73,11 @@ def match(req: MatchRequest) -> MatchResponse:
     logger.info("[match] 收到请求: year=%d month=%d day=%d hour=%d gender=%s top_n=%d",
                 req.birth_year, req.birth_month, req.birth_day, req.birth_hour, req.gender, req.top_n)
 
-    # Step 1: 计算用户八字
+    # Step1: 计算用户八字
     user_bazi = get_sizhu(
         req.birth_year, req.birth_month, req.birth_day,
         req.birth_hour, req.birth_minute,
+        gender=req.gender,
     )
     logger.info("[match] 用户八字: year=%s month=%s day=%s hour=%s day_master=%s",
                 user_bazi.year_pillar, user_bazi.month_pillar, user_bazi.day_pillar,
@@ -110,7 +111,14 @@ def match(req: MatchRequest) -> MatchResponse:
                 nayin_wuxing=user["nayin_wuxing"],
                 tiangan_list=user["tiangan_list"] if isinstance(user["tiangan_list"], list) else [],
                 dizhi_list=user["dizhi_list"] if isinstance(user["dizhi_list"], list) else [],
+                shishen_list=user.get("shishen_list", []) if isinstance(user.get("shishen_list"), list) else [],
+                minggua=user.get("minggua", ""),
+                shengxiao=user.get("shengxiao", ""),
+                pattern=user.get("pattern", ""),
             )
+            # 如果 pattern 为空，则计算
+            if not target_bazi.pattern:
+                target_bazi.pattern = calc_pattern(target_bazi)
             match_result = matcher.calc_match(user_bazi, target_bazi)
             scored_results.append((user, match_result.total_score, match_result))
         except Exception as e:
@@ -143,7 +151,14 @@ def match(req: MatchRequest) -> MatchResponse:
             nayin_wuxing=user["nayin_wuxing"],
             tiangan_list=user["tiangan_list"] if isinstance(user["tiangan_list"], list) else [],
             dizhi_list=user["dizhi_list"] if isinstance(user["dizhi_list"], list) else [],
+            shishen_list=user.get("shishen_list", []) if isinstance(user.get("shishen_list"), list) else [],
+            minggua=user.get("minggua", ""),
+            shengxiao=user.get("shengxiao", ""),
+            pattern=user.get("pattern", ""),
         )
+        # 如果 pattern 为空，则计算
+        if not target_bazi.pattern:
+            target_bazi.pattern = calc_pattern(target_bazi)
         matched_users.append(MatchedUser(
             id=user["id"],
             name=user["name"],

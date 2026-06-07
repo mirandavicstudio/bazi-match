@@ -1,12 +1,58 @@
-data/*.db
-__pycache__
-.env
+# ========== Python ==========
+__pycache__/
 *.pyc
-.pytest_cache
+*.pyo
+*.egg-info/
+*.egg
+dist/
+build/
 *.egg-info
+
+# ========== 虚拟环境 ==========
 venv/
 venv311/
-*.exe
-.DS_Store
-.workbuddy/
+venv311_real/
+.venv/
+env/
+
+# ========== 数据库 ==========
+*.db
+data/*.db
+
+# ========== 测试 & 覆盖率 ==========
+.coverage
+.pytest_cache/
+htmlcov/
+api_test_result.txt
+test_results.txt
+pytest_output.txt
+test_*.py
+!backend/tests/
+
+# ========== 环境配置 ==========
+.env
+
+# ========== 前端依赖 ==========
+frontend/node_modules/
+frontend/package-lock.json
+frontend/package.json
+
+# ========== 构建产物 ==========
+frontend/dist/
+frontend/build/
+nul
+
+# ========== IDE & 系统 ==========
 .idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# ========== WorkBuddy ==========
+.workbuddy/
+
+# ========== 临时文件 ==========
+.frontend.pid
+*.log
+*.exe

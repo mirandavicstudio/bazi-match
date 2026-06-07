@@ -17,6 +17,10 @@ class BaziData(BaseModel):
     nayin_wuxing: str = Field(..., description="纳音五行，如'金'")
     tiangan_list: list = Field(..., description="四天干列表，如['庚','己','壬','甲']")
     dizhi_list: list = Field(..., description="四地支列表，如['辰','卯','申','辰']")
+    shishen_list: list = Field(default_factory=list, description="十神列表，包含四柱的天干十神和地支十神")
+    minggua: dict = Field(default_factory=dict, description="命卦信息，如{'gua': '乾卦', 'type': '西四命'}")
+    shengxiao: str = Field(default="", description="生肖，如'戌(狗)'")
+    pattern: str = Field(default="", description="格局，如'杂气正官格'")
 
 
 class DimensionScore(BaseModel):
@@ -34,6 +38,8 @@ class MatchResult(BaseModel):
     grade_stars: str = Field(..., description="星级显示")
     dimensions: list[DimensionScore] = Field(..., description="六维度得分")
     interpretation: str = Field(default="", description="解读文案")
+    minggua_relation: dict = Field(default_factory=dict, description="命卦关系，如{'relation': '互补', 'desc': '...'}")
+    shengxiao_relation: dict = Field(default_factory=dict, description="生肖关系，如{'relation': '合', 'desc': '...'}")
 
 
 class MatchRequest(BaseModel):
