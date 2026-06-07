@@ -1,0 +1,57 @@
+sequenceDiagram
+    actor User as 用户浏览器
+    participant FE as 前端 (Vue3)
+    participant API as FastAPI (main.py)
+    participant PP as 排盘模块 (paipan.py)
+    participant DB as 数据库层 (db.py)
+    participant MT as 匹配引擎 (matcher.py)
+    participant IT as 解读生成 (interpreter.py)
+    participant SQLite as SQLite (bazi.db)
+
+    User->>FE: 输入出生日期/时辰/性别，点击"开始匹配"
+    FE->>FE: 表单验证通过
+    FE->>FE: state = 'loading'，启动假进度条
+    FE->>API: POST /api/match {birth_year, month, day, hour, minute, gender, top_n}
+
+    API->>API: Pydantic 校验请求体
+    API->>PP: get_sizhu(year, month, day, hour, minute)
+    PP->>PP: 处理子时跨日 (hour∈[23,0] → day+1)
+    PP->>PP: sxtwl.fromSolar() 获取 Day 对象
+    PP->>PP: 提取四柱 + 统计五行 + 计算纳音
+    PP-->>API: BaziData (用户八字)
+
+    API->>DB: get_all_users()
+    DB->>SQLite: SELECT * FROM users
+    SQLite-->>DB: 1W 行用户数据
+    DB-->>API: list[dict] (全量用户)
+
+    loop 遍历每个用户 (1W 次)
+        API->>MT: calc_match(user_bazi, target_bazi)
+        MT->>MT: calc_dizhi_hechong() → 30%
+        MT->>MT: calc_wuxing_complement() → 25%
+        MT->>MT: calc_tiangan_he() → 15%
+        MT->>MT: calc_rizhu_relation() → 15%
+        MT->>MT: calc_nayin_score() → 10%
+        MT->>MT: calc_shensha() → 5%
+        MT->>MT: calc_total_score() 加权汇总
+        MT->>MT: map_grade() 等级映射
+        MT-->>API: MatchResult
+    end
+
+    API->>API: 按 total_score 降序排序，取 Top-N
+
+    loop Top-N 结果
+        API->>IT: generate_interpretation(match_result)
+        IT->>IT: 选择模板 + 填充变量
+        IT-->>API: 解读文案 str
+    end
+
+    API-->>FE: MatchResponse {user_bazi, matches, total_time_ms}
+
+    FE->>FE: progress = 100%，停留 300ms
+    FE->>FE: state = 'result'，渲染结果卡片
+    FE-->>User: 展示匹配结果
+
+    User->>FE: 点击"查看合盘详情"
+    FE->>FE: showDetail = true，渲染弹窗
+    FE-->>User: 展示六维度进度条 + 解读文案

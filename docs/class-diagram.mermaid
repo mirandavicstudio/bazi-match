@@ -1,0 +1,132 @@
+classDiagram
+    direction TB
+
+    class BaziData {
+        +str year_pillar
+        +str month_pillar
+        +str day_pillar
+        +str hour_pillar
+        +str day_master
+        +dict wuxing_dist
+        +str nayin
+        +str nayin_wuxing
+        +list tiangan_list
+        +list dizhi_list
+    }
+
+    class DimensionScore {
+        +str name
+        +float score
+        +str detail
+        +list~str~ hits
+    }
+
+    class MatchResult {
+        +float total_score
+        +str grade
+        +str grade_stars
+        +list~DimensionScore~ dimensions
+        +str interpretation
+    }
+
+    class MatchRequest {
+        +int birth_year
+        +int birth_month
+        +int birth_day
+        +int birth_hour
+        +int birth_minute
+        +str gender
+        +int top_n
+    }
+
+    class MatchedUser {
+        +int id
+        +str name
+        +str gender
+        +str birth_date
+        +BaziData sizhu
+        +float match_score
+        +str match_grade
+        +str match_stars
+        +list~DimensionScore~ dimensions
+        +str interpretation
+    }
+
+    class MatchResponse {
+        +bool success
+        +BaziData user_bazi
+        +list~MatchedUser~ matches
+        +int total_time_ms
+    }
+
+    class PaipanModule {
+        +get_sizhu(year, month, day, hour, minute) BaziData$
+        -_handle_zishi(hour, day) tuple$
+        -_calc_wuxing_dist(tiangan_list, dizhi_list) dict$
+        -_calc_nayin(year_pillar) tuple$
+    }
+
+    class MatcherModule {
+        +calc_match(bazi_a, bazi_b) MatchResult$
+        +calc_total_score(dimensions) float$
+        +map_grade(total_score) tuple$
+        -calc_dizhi_hechong(a, b) DimensionScore$
+        -calc_wuxing_complement(a, b) DimensionScore$
+        -calc_tiangan_he(a, b) DimensionScore$
+        -calc_rizhu_relation(a, b) DimensionScore$
+        -calc_nayin_score(a, b) DimensionScore$
+        -calc_shensha(a, b) DimensionScore$
+    }
+
+    class InterpreterModule {
+        +generate_interpretation(match_result) str$
+        -_select_template(dim_name, score) str$
+        -_format_hits(hits) str$
+    }
+
+    class DbModule {
+        +init_db() None$
+        +get_conn() Connection$
+        +insert_user(user_dict) int$
+        +batch_insert_users(users_list) int$
+        +get_all_users() list$
+        +get_user_by_id(uid) dict$
+        +count_users() int$
+        +clear_users() None$
+    }
+
+    class SeedModule {
+        +main() None$
+        -generate_name(gender) str$
+        -generate_random_birth() dict$
+    }
+
+    class ConfigModule {
+        +str DB_PATH$
+        +dict WEIGHTS$
+        +dict SCORE_CONFIG$
+        +int SEED_COUNT$
+        +list SURNAMES$
+        +list MALE_NAMES$
+        +list FEMALE_NAMES$
+        +dict HOUR_TO_SHICHEN$
+        +dict TIANGAN_WUXING$
+        +dict WUXING_SHENG$
+        +dict WUXING_KE$
+    }
+
+    MatchRequest --> PaipanModule : 排盘
+    PaipanModule --> BaziData : 输出
+    BaziData --> MatcherModule : 输入
+    MatcherModule --> DimensionScore : 各维度输出
+    MatcherModule --> MatchResult : 汇总输出
+    MatchResult --> InterpreterModule : 输入
+    InterpreterModule --> MatchResult : 填充 interpretation
+    DbModule --> BaziData : 预存数据读取
+    SeedModule --> PaipanModule : 生成时调用
+    SeedModule --> DbModule : 批量写入
+    ConfigModule --> MatcherModule : 权重/加分配置
+    ConfigModule --> DbModule : 数据库路径
+    ConfigModule --> SeedModule : 姓名池/数量
+    MatchResponse --> MatchedUser : 包含
+    MatchedUser --> DimensionScore : 包含

@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="八字合盘匹配系统 - 输入出生信息，从万人库中寻找与你八字最合的人">
+  <meta name="theme-color" content="#6366f1">
+  <title>八字合盘匹配 - 寻找命中注定的缘分</title>
+  
+  <!-- ====== 外部资源 ====== -->
+  <script src="https://unpkg.com/vue@3"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios"></script>
+  
+  <!-- ====== 样式文件 ====== -->
+  <link rel="stylesheet" href="css/design-system.css">
+  <link rel="stylesheet" href="css/style.css">
+  
+  <!-- ====== Tailwind CSS (备用) ====== -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- ====== 预连接 (性能优化) ====== -->
+  <link rel="preconnect" href="http://localhost:8000">
+</head>
+
+<body class="bg-gradient-page min-h-screen">
+  <div id="app" class="container px-4 py-8 sm:px-6 lg:px-8">
+    
+    <!-- 调试状态显示（开发时可见） -->
+    <div class="text-center mb-4">
+      <span class="inline-block px-3 py-1 bg-gray-100 text-gray-500 text-xs rounded-full font-mono">
+        状态: {{ state }}
+      </span>
+    </div>
+    
+    <!-- ====== 页面标题区域 ====== -->
+    <header class="relative text-center mb-12 animate-fade-in-up">
+      <!-- 装饰性背景元素 -->
+      <div class="absolute inset-0 -z-10 overflow-hidden" aria-hidden="true">
+        <!-- 渐变光晕 -->
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-indigo-200 via-purple-200 to-pink-200 rounded-full opacity-30 blur-3xl animate-pulse-slow"></div>
+        
+        <!-- 装饰性图案 -->
+        <div class="absolute top-0 left-1/4 text-6xl opacity-5 animate-float">☯</div>
+        <div class="absolute top-10 right-1/4 text-4xl opacity-5 animate-float-delayed">福</div>
+      </div>
+      
+      <!-- 主标题区域 -->
+      <div class="relative">
+        <!-- 图标容器 -->
+        <div class="relative inline-block mb-6">
+          <div class="text-8xl animate-pulse-soft filter drop-shadow-2xl">🏮</div>
+          <!-- 光晕效果 -->
+          <div class="absolute inset-0 bg-gradient-to-r from-indigo-400 to-purple-400 rounded-full opacity-20 blur-2xl animate-pulse-slow"></div>
+        </div>
+        
+        <!-- 标题 -->
+        <h1 class="text-5xl font-bold mb-4 relative">
+          <span class="bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent bg-300% animate-gradient">
+            八字合盘匹配
+          </span>
+          <!-- 装饰线 -->
+          <div class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-24 h-1 bg-gradient-to-r from-transparent via-indigo-500 to-transparent"></div>
+        </h1>
+        
+        <!-- 副标题 -->
+        <p class="text-xl text-gray-600 mt-6 mb-4 font-light tracking-wide">
+          输入出生信息，从万人库中寻找与你八字最合的人
+        </p>
+        
+        <!-- 装饰性分割线 -->
+        <div class="flex items-center justify-center gap-3 mt-6">
+          <div class="w-16 h-0.5 bg-gradient-to-r from-transparent to-indigo-300 rounded-full"></div>
+          <div class="w-2 h-2 bg-indigo-400 rounded-full animate-pulse"></div>
+          <div class="w-8 h-0.5 bg-indigo-400 rounded-full"></div>
+          <div class="w-2 h-2 bg-purple-400 rounded-full animate-pulse animation-delay-200"></div>
+          <div class="w-16 h-0.5 bg-gradient-to-l from-transparent to-purple-300 rounded-full"></div>
+        </div>
+      </div>
+    </header>
+
+    <!-- ==================== 状态1：输入表单 ==================== -->
+    <div v-if="state === 'input'" class="card-premium p-8 md:p-10 animate-fade-in-up animation-delay-200">
+      <!-- 表单标题 -->
+      <div class="flex items-center gap-3 mb-8 pb-6 border-b border-gray-100">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white text-xl shadow-lg shadow-indigo-200">
+          ✨
+        </div>
+        <div>
+          <h2 class="text-xl font-bold text-gray-800">填写出生信息</h2>
+          <p class="text-sm text-gray-500">准确的信息才能获得精准的匹配结果</p>
+        </div>
+      </div>
+      
+      <form @submit.prevent="startMatch" aria-label="八字匹配信息表单">
+        
+        <!-- 出生日期 - 滑动滚轮选择器 -->
+        <div class="mb-6">
+          <label class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
+            <span class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-base">📅</span>
+            出生日期
+            <span class="text-red-500">*</span>
+          </label>
+
+          <!-- 滚轮选择器容器 -->
+          <div
+            ref="wheelContainer"
+            class="date-wheel-container"
+            tabindex="0"
+            role="group"
+            aria-label="选择出生日期"
+          >
+            <!-- 年列 -->
+            <div class="date-wheel-col" ref="yearCol" aria-label="年份">
+              <div class="date-wheel-mask-top"></div>
+              <div class="date-wheel-mask-bottom"></div>
+              <div class="date-wheel-highlight"></div>
+              <div class="date-wheel-label">年</div>
+              <div class="date-wheel-scroll" ref="yearScroll"></div>
+            </div>
+            <!-- 月列 -->
+            <div class="date-wheel-col" ref="monthCol" aria-label="月份">
+              <div class="date-wheel-mask-top"></div>
+              <div class="date-wheel-mask-bottom"></div>
+              <div class="date-wheel-highlight"></div>
+              <div class="date-wheel-label">月</div>
+              <div class="date-wheel-scroll" ref="monthScroll"></div>
+            </div>
+            <!-- 日列 -->
+            <div class="date-wheel-col" ref="dayCol" aria-label="日期">
+              <div class="date-wheel-mask-top"></div>
+              <div class="date-wheel-mask-bottom"></div>
+              <div class="date-wheel-highlight"></div>
+              <div class="date-wheel-label">日</div>
+              <div class="date-wheel-scroll" ref="dayScroll"></div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- 出生时辰 - 滑动滚轮选择器 -->
+        <div class="mb-6">
+          <label class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
+            <span class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-base">⏰</span>
+            出生时辰
+            <span class="text-red-500">*</span>
+          </label>
+          <div class="date-wheel-container date-wheel-single">
+            <div class="date-wheel-col" ref="hourCol" aria-label="时辰">
+              <div class="date-wheel-mask-top"></div>
+              <div class="date-wheel-mask-bottom"></div>
+              <div class="date-wheel-highlight"></div>
+              <div class="date-wheel-scroll" ref="hourScroll"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 性别 -->
+        <div class="mb-6">
+          <label class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
+            <span class="w-8 h-8 rounded-lg bg-pink-50 text-pink-600 flex items-center justify-center text-base">👤</span>
+            性别
+            <span class="text-red-500">*</span>
+          </label>
+          <div class="gender-selector">
+            <button
+              type="button"
+              @click="form.gender = '男'"
+              class="gender-btn"
+              :class="form.gender === '男' ? 'active-male' : ''"
+              :aria-pressed="form.gender === '男'"
+            >
+              <span class="text-2xl">♂️</span>
+              <span class="font-medium">男</span>
+            </button>
+            <button
+              type="button"
+              @click="form.gender = '女'"
+              class="gender-btn"
+              :class="form.gender === '女' ? 'active-female' : ''"
+              :aria-pressed="form.gender === '女'"
+            >
+              <span class="text-2xl">♀️</span>
+              <span class="font-medium">女</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 匹配数量 -->
+        <div class="mb-8">
+          <label for="match-count" class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
+            <span class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-base">🔢</span>
+            匹配数量
+          </label>
+          <div class="range-wrapper">
+            <input
+              id="match-count"
+              type="range"
+              v-model.number="form.topN"
+              min="1"
+              max="20"
+              class="range-input"
+              aria-label="选择匹配数量"
+            />
+            <span class="range-value-badge">
+              {{ form.topN }}
+            </span>
+          </div>
+          <p class="mt-2 text-xs text-gray-400">拖动滑块选择匹配数量 (1-20)</p>
+        </div>
+
+        <!-- 提交按钮 -->
+        <button
+          type="submit"
+          :disabled="!isFormValid"
+          class="btn-primary-premium w-full"
+        >
+          <span v-if="!loading">🎯 开始匹配</span>
+          <span v-else class="flex items-center justify-center">
+            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            匹配中...
+          </span>
+        </button>
+      </form>
+
+      <!-- 免责声明 -->
+      <div class="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-xl" role="alert">
+        <p class="text-xs text-amber-700 leading-relaxed">
+          ⚠️ <strong>免责声明：</strong>本系统仅供娱乐参考，不构成任何人生决策建议。八字命理为传统文化，科学性有待考证。
+        </p>
+      </div>
+    </div>
+
+    <!-- ==================== 状态2：加载动画 ==================== -->
+    <div v-if="state === 'loading'" class="card-premium p-12 text-center animate-fade-in-up">
+      <!-- 主视觉 -->
+      <div class="relative mb-10">
+        <!-- 旋转八卦图 -->
+        <div class="inline-block relative">
+          <svg class="w-32 h-32 animate-spin-slow" viewBox="0 0 100 100" aria-label="匹配加载中">
+            <!-- 八卦圆环 -->
+            <circle cx="50" cy="50" r="45" fill="none" stroke="url(#bagua-gradient)" stroke-width="2"/>
+            
+            <!-- 阴阳图简化版 -->
+            <path d="M 50 5 A 45 45 0 0 1 50 95 A 45 45 0 0 1 50 5" fill="url(#yin-yang)"/>
+            
+            <!-- 八卦符号 -->
+            <text x="50" y="20" text-anchor="middle" font-size="10" fill="#6366f1">☰</text>
+            <text x="72" y="32" text-anchor="middle" font-size="10" fill="#6366f1">☱</text>
+            <text x="80" y="55" text-anchor="middle" font-size="10" fill="#6366f1">☲</text>
+            <text x="72" y="78" text-anchor="middle" font-size="10" fill="#6366f1">☳</text>
+            <text x="50" y="90" text-anchor="middle" font-size="10" fill="#6366f1">☴</text>
+            <text x="28" y="78" text-anchor="middle" font-size="10" fill="#6366f1">☵</text>
+            <text x="20" y="55" text-anchor="middle" font-size="10" fill="#6366f1">☶</text>
+            <text x="28" y="32" text-anchor="middle" font-size="10" fill="#6366f1">☷</text>
+            
+            <!-- 渐变定义 -->
+            <defs>
+              <linearGradient id="bagua-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:#6366f1"/>
+                <stop offset="100%" style="stop-color:#a855f7"/>
+              </linearGradient>
+              <linearGradient id="yin-yang" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:#e0e7ff"/>
+                <stop offset="100%" style="stop-color:#faf5ff"/>
+              </linearGradient>
+            </defs>
+          </svg>
+          
+          <!-- 脉冲光晕 -->
+          <div class="absolute inset-0 bg-gradient-to-r from-indigo-400 to-purple-400 opacity-20 blur-2xl rounded-full animate-pulse-slow"></div>
+        </div>
+        
+        <h2 class="text-3xl font-bold text-gray-800 mb-3">正在匹配中...</h2>
+        <p class="text-gray-500 text-lg">系统正在从万人库中寻找与你最有缘分的人</p>
+      </div>
+      
+      <!-- 进度展示 -->
+      <div class="max-w-md mx-auto space-y-6">
+        <!-- 进度条 -->
+        <div class="relative">
+          <div class="progress-bar-bg-premium">
+            <div class="progress-bar-fill-premium" :style="{ width: progress + '%' }">
+              <div class="shimmer-effect"></div>
+            </div>
+          </div>
+          <!-- 进度百分比悬浮显示 -->
+          <div class="absolute -top-8 left-0 transition-all duration-100" :style="{ left: progress + '%' }">
+            <div class="relative -left-6 bg-gray-800 text-white text-xs py-1 px-2 rounded-lg whitespace-nowrap">
+              {{ progress }}%
+              <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-800 rotate-45"></div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 匹配计数动画 -->
+        <div class="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-6 border border-indigo-100">
+          <div class="flex items-center justify-center gap-2 text-indigo-700">
+            <span class="text-4xl font-black tabular-nums">{{ matchedCount.toLocaleString() }}</span>
+            <span class="text-lg">/ 10,000 人</span>
+          </div>
+          <div class="mt-2 text-sm text-indigo-600">已匹配</div>
+        </div>
+      </div>
+      
+      <!-- 提示语轮播 -->
+      <div class="mt-8 text-sm text-gray-400" aria-live="polite">
+        <p>💡 {{ currentTip }}</p>
+      </div>
+      
+      <!-- 调试按钮：强制跳过 -->
+      <div class="mt-6">
+        <button
+          @click="forceShowResult"
+          class="text-xs text-gray-400 hover:text-gray-600 underline transition-colors"
+          title="如果长时间卡住，点击此按钮强制显示结果"
+        >
+          ⚡ 强制显示结果（调试用）
+        </button>
+      </div>
+    </div>
+
+    <!-- ==================== 状态3：结果展示 ==================== -->
+    <div v-if="state === 'result'" class="animate-fade-in-up">
+      
+      <!-- 用户八字信息卡片 -->
+      <div class="card-premium p-6 md:p-8 mb-8">
+        <!-- 标题区 -->
+        <div class="flex items-center justify-between mb-6">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-2xl shadow-lg shadow-indigo-200">
+              ☯
+            </div>
+            <div>
+              <h2 class="text-2xl font-bold text-gray-800">你的八字信息</h2>
+              <p class="text-sm text-gray-500">基于出生时间计算</p>
+            </div>
+          </div>
+          <!-- 日主标签 -->
+          <div v-if="userBaziDisplay.dayMaster" class="px-4 py-2 bg-gradient-to-r from-amber-400 to-orange-500 text-white rounded-xl font-bold text-lg shadow-lg shadow-amber-200">
+            日主 {{ userBaziDisplay.dayMaster }}
+          </div>
+        </div>
+
+        <!-- 四柱展示 -->
+        <div class="grid grid-cols-4 gap-4 mb-6">
+          <div 
+            v-for="(pillar, idx) in userBaziDisplay.pillars" 
+            :key="idx"
+            class="relative group"
+          >
+            <!-- 柱子卡片 -->
+            <div class="bg-gradient-to-b from-indigo-50 via-white to-white rounded-2xl p-4 border border-indigo-100 hover:border-indigo-300 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+              <!-- 柱子标签 -->
+              <div class="text-xs text-indigo-400 font-medium mb-2 flex items-center justify-between">
+                <span>{{ pillarLabels[idx] }}</span>
+                <span class="opacity-0 group-hover:opacity-100 transition-opacity">📜</span>
+              </div>
+              
+              <!-- 天干 -->
+              <div class="text-3xl font-black text-gray-800 mb-1 text-center">
+                {{ pillar[0] }}
+              </div>
+              
+              <!-- 地支 -->
+              <div class="text-2xl font-bold text-indigo-600 text-center">
+                {{ pillar[1] }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 五行分布可视化 -->
+        <div class="border-t border-gray-100 pt-6">
+          <h3 class="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+            <span class="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center text-sm">🌿</span>
+            五行分布
+          </h3>
+          <div class="grid grid-cols-5 gap-3">
+            <div 
+              v-for="wx in wuxingOrder" 
+              :key="wx"
+              class="text-center p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer"
+              :title="wx + '：' + (userBaziDisplay.wuxingDist[wx] || 0) + '个'"
+            >
+              <div class="text-2xl mb-1">{{ getWuxingEmoji(wx) }}</div>
+              <div class="text-xs text-gray-600 mb-1">{{ wx }}</div>
+              <div class="text-lg font-bold text-gray-800">{{ userBaziDisplay.wuxingDist[wx] || 0 }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 匹配结果列表 -->
+      <div class="mb-4 flex items-center justify-between">
+        <h2 class="text-xl font-bold text-gray-800 flex items-center">
+          <span class="mr-2">🎯</span> 匹配结果
+        </h2>
+        <span class="text-sm text-gray-500">共 {{ matches.length }} 人</span>
+      </div>
+
+      <div class="space-y-4 mb-6">
+        <div
+          v-for="(m, idx) in matches"
+          :key="m.id"
+          class="card-premium p-6 hover:shadow-2xl transition-all duration-500 animate-fade-in-up"
+          :style="{ animationDelay: (idx * 100) + 'ms' }"
+        >
+          <!-- 排名 + 基本信息 -->
+          <div class="flex items-start justify-between mb-4">
+            <div class="flex items-center gap-4">
+              <!-- 排名 -->
+              <div class="relative">
+                <div 
+                  class="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-bold text-lg shadow-lg"
+                  :class="idx < 3 
+                    ? 'bg-gradient-to-br from-amber-400 via-orange-500 to-amber-600 shadow-amber-200' 
+                    : 'bg-gradient-to-br from-indigo-400 to-indigo-600 shadow-indigo-200'"
+                >
+                  {{ idx + 1 }}
+                </div>
+                <!-- 前三名皇冠 -->
+                <div v-if="idx === 0" class="absolute -top-2 -right-2 text-xl animate-bounce">👑</div>
+              </div>
+              
+              <!-- 基本信息 -->
+              <div>
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="font-bold text-gray-800 text-lg">{{ m.name }}</span>
+                  <span class="text-sm text-gray-400">{{ m.gender }}</span>
+                  <!-- 在线状态指示 -->
+                  <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                </div>
+                <p class="text-sm text-gray-500">{{ m.birth_date }}</p>
+              </div>
+            </div>
+            
+            <!-- 评分区域 -->
+            <div class="text-right">
+              <!-- 环形评分 -->
+              <div class="score-ring w-16 h-16 mx-auto mb-2">
+                <svg class="w-full h-full" viewBox="0 0 36 36" aria-label="匹配度：{{ m.match_score }}分">
+                  <path
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                    fill="none"
+                    stroke="#e5e7eb"
+                    stroke-width="3"
+                  />
+                  <path
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                    fill="none"
+                    :stroke="getScoreColor(m.match_score)"
+                    stroke-width="3"
+                    :stroke-dasharray="m.match_score + ', 100'"
+                    stroke-linecap="round"
+                  />
+                </svg>
+                <div class="score-text">
+                  <div class="text-lg font-black" :class="scoreColor(m.match_score)">
+                    {{ m.match_score }}
+                  </div>
+                </div>
+              </div>
+              <div class="text-xs text-gray-500">{{ m.match_grade }}</div>
+              <div class="text-lg mt-0.5">{{ m.match_stars }}</div>
+            </div>
+          </div>
+          
+          <!-- 操作按钮 -->
+          <div class="flex gap-3 mt-4">
+            <button
+              @click="openDetail(m)"
+              class="flex-1 py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 transition-all duration-200 shadow-lg shadow-indigo-200 hover:shadow-xl"
+            >
+              📖 查看合盘详情
+            </button>
+            <button 
+              class="px-4 py-3 rounded-xl border-2 border-gray-200 hover:border-rose-300 hover:bg-rose-50 transition-all duration-200 text-rose-500 hover:text-rose-600"
+              aria-label="收藏"
+            >
+              ❤️
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 重新匹配按钮 -->
+      <button
+        @click="resetMatch"
+        class="w-full py-3.5 rounded-xl font-semibold text-indigo-600 border-2 border-indigo-600 hover:bg-indigo-50 transition-all duration-200"
+      >
+        🔄 重新匹配
+      </button>
+    </div>
+
+    <!-- ==================== 弹窗：合盘详情 ==================== -->
+    <div
+      v-if="showDetail"
+      class="modal-overlay"
+      @click.self="closeDetail"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="detail-title"
+    >
+      <div class="modal-content">
+        
+        <!-- 装饰性顶部渐变背景 -->
+        <div class="relative bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 px-6 py-8 sm:px-8 sm:py-10">
+          <!-- 关闭按钮 -->
+          <button 
+            @click="closeDetail" 
+            class="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full bg-white bg-opacity-20 hover:bg-opacity-30 text-white text-xl transition-all duration-200 backdrop-blur-sm"
+            aria-label="关闭"
+          >
+            ×
+          </button>
+
+          <!-- 总评区域 -->
+          <div class="text-center text-white">
+            <!-- 评分圆环（装饰性） -->
+            <div class="inline-flex items-center justify-center w-24 h-24 rounded-full bg-white bg-opacity-20 backdrop-blur-sm mb-4 border-4 border-white border-opacity-30">
+              <div>
+                <div class="text-4xl font-black leading-none">{{ detailData.match_score }}</div>
+                <div class="text-xs opacity-80">匹配度</div>
+              </div>
+            </div>
+            
+            <div class="text-2xl font-bold mb-1">{{ detailData.match_grade }}</div>
+            <div class="text-3xl mb-2">{{ detailData.match_stars }}</div>
+            <div class="text-sm opacity-90 bg-white bg-opacity-20 rounded-full px-4 py-1.5 inline-block backdrop-blur-sm">
+              💑 {{ detailData.name }} × 你
+            </div>
+          </div>
+
+          <!-- 装饰性波浪 -->
+          <div class="absolute bottom-0 left-0 right-0">
+            <svg viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+              <path d="M0,120 L1440,120 L1440,0 C1200,60 960,90 720,60 C480,30 240,0 0,0 L0,120 Z" fill="white"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- 内容区域 -->
+        <div class="px-6 py-6 sm:px-8 sm:py-8">
+          
+          <!-- 六维度评分 -->
+          <div class="mb-8">
+            <h3 class="text-lg font-bold text-gray-800 mb-5 flex items-center">
+              <span class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center mr-2 text-base">📊</span>
+              各维度得分详情
+            </h3>
+
+            <div class="space-y-4">
+              <div
+                v-for="(dim, idx) in detailData.dimensions"
+                :key="dim.name"
+                class="bg-gray-50 rounded-2xl p-4 border border-gray-100 transition-all duration-300 hover:shadow-md hover:border-gray-200"
+              >
+                <!-- 维度头部：图标 + 名称 + 分数 -->
+                <div class="flex justify-between items-center mb-3">
+                  <div class="flex items-center gap-2.5">
+                    <!-- 维度图标 -->
+                    <span
+                      class="w-9 h-9 rounded-xl flex items-center justify-center text-lg shadow-sm"
+                      :class="getDimIconBg(idx)"
+                    >
+                      {{ getDimIcon(dim.name) }}
+                    </span>
+                    <div>
+                      <div class="font-semibold text-gray-800 text-sm">{{ dim.name }}</div>
+                      <div class="text-xs text-gray-400 mt-0.5">{{ getDimDesc(dim.name) }}</div>
+                    </div>
+                  </div>
+                  <!-- 分数徽章 -->
+                  <div
+                    class="flex items-center justify-center w-14 h-14 rounded-2xl shadow-sm"
+                    :class="getScoreBadgeClass(dim.score)"
+                  >
+                    <div class="text-center">
+                      <div class="text-lg font-black leading-none">{{ dim.score.toFixed(0) }}</div>
+                      <div class="text-[10px] opacity-70 mt-0.5">分</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 渐变进度条 -->
+                <div class="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden mb-3">
+                  <div
+                    class="h-full rounded-full transition-all duration-700 ease-out relative"
+                    :class="dimBarColorClass(dim.score)"
+                    :style="{ width: dim.score + '%' }"
+                  >
+                    <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-40 animate-shimmer"></div>
+                  </div>
+                </div>
+
+                <!-- 命中项标签 -->
+                <div v-if="dim.hits && dim.hits.length" class="flex flex-wrap gap-1.5">
+                  <span
+                    v-for="hit in dim.hits"
+                    :key="hit"
+                    class="inline-flex items-center text-xs px-2.5 py-1 rounded-lg font-medium border"
+                    :class="getHitTagClass(hit)"
+                  >
+                    {{ getHitPrefix(hit) }} {{ hit }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 分隔线 -->
+          <div class="border-t border-gray-100 mb-6"></div>
+
+          <!-- 合盘解读 -->
+          <div>
+            <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+              <span class="w-8 h-8 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center mr-2">📝</span>
+              合盘解读
+            </h3>
+            
+            <div class="bg-gradient-to-br from-gray-50 to-indigo-50 rounded-2xl p-5 border border-gray-100">
+              <div class="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
+                {{ detailData.interpretation }}
+              </div>
+            </div>
+          </div>
+
+          <!-- 操作按钮组 -->
+          <div class="mt-6 flex gap-3">
+            <button
+              @click="closeDetail"
+              class="flex-1 py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 transition-all duration-200 shadow-lg shadow-indigo-200"
+            >
+              完成查看
+            </button>
+            <button
+              @click="closeDetail"
+              class="px-6 py-3 rounded-xl font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-all duration-200"
+            >
+              关闭
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 错误提示 ==================== -->
+    <div
+      v-if="errorMessage"
+      class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-red-500 text-white px-6 py-3 rounded-xl shadow-2xl z-50 text-sm animate-fade-in-up"
+      role="alert"
+      aria-live="assertive"
+    >
+      ⚠️ {{ errorMessage }}
+    </div>
+
+  </div>
+
+  <!-- ====== 应用脚本 ====== -->
+  <script src="js/app.js"></script>
+</body>
+</html>

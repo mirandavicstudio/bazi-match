@@ -1,0 +1,275 @@
+/* ========================================
+   Design System - 设计令牌系统
+   ======================================== */
+
+/* ====== CSS 设计令牌 (Design Tokens) ====== */
+:root {
+  /* --- 主色调 - 融合传统文化与现代美学 --- */
+  --color-primary: #6366f1;        /* Indigo 500 - 主品牌色 */
+  --color-primary-light: #818cf8;   /* Indigo 400 - 悬停状态 */
+  --color-primary-dark: #4f46e5;    /* Indigo 600 - 激活状态 */
+  --color-primary-50: #eef2ff;     /* 浅色背景 */
+  --color-primary-100: #e0e7ff;
+  --color-primary-200: #c7d2fe;
+  --color-primary-300: #a5b4fc;
+  --color-primary-400: #818cf8;
+  --color-primary-500: #6366f1;
+  --color-primary-600: #4f46e5;
+  --color-primary-700: #4338ca;
+  --color-primary-800: #3730a3;
+  --color-primary-900: #312e81;
+  
+  /* --- 辅助色 - 增添温暖感 --- */
+  --color-accent: #f59e0b;        /* Amber 500 - 强调/评分 */
+  --color-accent-light: #fbbf24;   /* Amber 400 */
+  --color-rose: #f43f5e;          /* Rose 500 - 情感/缘分 */
+  --color-cyan: #06b6d4;          /* Cyan 500 - 平静/智慧 */
+  
+  /* --- 传统文化色系 --- */
+  --color-gold: #d4a574;          /* 金色 - 吉祥 */
+  --color-jade: #81c784;          /* 翡翠绿 - 和谐 */
+  --color-crimson: #dc2626;       /* 朱红 - 热情 */
+  --color-crimson-light: #f87171;
+  
+  /* --- 语义色 --- */
+  --color-success: #10b981;
+  --color-success-light: #d1fae5;
+  --color-warning: #f59e0b;
+  --color-warning-light: #fef3c7;
+  --color-error: #ef4444;
+  --color-error-light: #fee2e2;
+  --color-info: #3b82f6;
+  --color-info-light: #dbeafe;
+  
+  /* --- 中性色 --- */
+  --color-gray-50: #f9fafb;
+  --color-gray-100: #f3f4f6;
+  --color-gray-200: #e5e7eb;
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-gray-600: #4b5563;
+  --color-gray-700: #374151;
+  --color-gray-800: #1f2937;
+  --color-gray-900: #111827;
+  
+  /* --- 背景渐变 --- */
+  --gradient-page: linear-gradient(135deg, #faf5ff 0%, #eff6ff 50%, #fdf2f8 100%);
+  --gradient-card: linear-gradient(135deg, #ffffff 0%, #fefefe 100%);
+  --gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  --gradient-primary-hover: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  --gradient-gold: linear-gradient(135deg, #d4a574 0%, #fbbf24 100%);
+  --gradient-accent: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+  
+  /* --- 字体系统 --- */
+  --font-sans: 'PingFang SC', 'Microsoft YaHei', system-ui, -apple-system, sans-serif;
+  --font-display: 'Noto Serif SC', 'STSong', 'SimSun', serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  
+  /* --- 字号阶梯（基于 16px） --- */
+  --text-xs: 0.75rem;    /* 12px - 辅助文本 */
+  --text-sm: 0.875rem;   /* 14px - 正文小 */
+  --text-base: 1rem;     /* 16px - 正文 */
+  --text-lg: 1.125rem;   /* 18px - 小标题 */
+  --text-xl: 1.25rem;    /* 20px - 标题 */
+  --text-2xl: 1.5rem;   /* 24px - 大标题 */
+  --text-3xl: 1.875rem;  /* 30px - 页面标题 */
+  --text-4xl: 2.25rem;  /* 36px - Hero标题 */
+  --text-5xl: 3rem;     /* 48px - 超大标题 */
+  
+  /* --- 行高 --- */
+  --leading-tight: 1.25;
+  --leading-snug: 1.375;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.625;
+  --leading-loose: 2;
+  
+  /* --- 字重 --- */
+  --font-light: 300;
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+  --font-extrabold: 800;
+  --font-black: 900;
+  
+  /* --- 间距系统（8px 基准） --- */
+  --space-1: 0.25rem;   /* 4px */
+  --space-2: 0.5rem;    /* 8px */
+  --space-3: 0.75rem;   /* 12px */
+  --space-4: 1rem;      /* 16px */
+  --space-5: 1.25rem;   /* 20px */
+  --space-6: 1.5rem;    /* 24px */
+  --space-8: 2rem;      /* 32px */
+  --space-10: 2.5rem;   /* 40px */
+  --space-12: 3rem;     /* 48px */
+  --space-16: 4rem;     /* 64px */
+  --space-20: 5rem;     /* 80px */
+  --space-24: 6rem;     /* 96px */
+  
+  /* --- 圆角系统 --- */
+  --radius-sm: 0.375rem;   /* 6px - 小元素 */
+  --radius-md: 0.5rem;     /* 8px - 按钮 */
+  --radius-lg: 0.75rem;    /* 12px - 卡片 */
+  --radius-xl: 1rem;       /* 16px - 大卡片 */
+  --radius-2xl: 1.5rem;   /* 24px - 模态框 */
+  --radius-3xl: 2rem;     /* 32px - 特殊容器 */
+  --radius-full: 9999px;   /* 圆形 */
+  
+  /* --- 阴影与深度系统 --- */
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  
+  /* --- 彩色阴影 - 增加品牌感 --- */
+  --shadow-primary: 0 4px 14px 0 rgb(99 102 241 / 0.4);
+  --shadow-primary-sm: 0 2px 8px 0 rgb(99 102 241 / 0.3);
+  --shadow-primary-lg: 0 10px 25px -5px rgb(99 102 241 / 0.3);
+  --shadow-gold: 0 4px 14px 0 rgb(212 165 116 / 0.4);
+  --shadow-rose: 0 4px 14px 0 rgb(244 63 94 / 0.4);
+  
+  /* --- 过渡动画系统 --- */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 500ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slower: 700ms cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* --- Z-index 层级系统 --- */
+  --z-dropdown: 1000;
+  --z-sticky: 1020;
+  --z-fixed: 1030;
+  --z-modal-backdrop: 1040;
+  --z-modal: 1050;
+  --z-popover: 1060;
+  --z-tooltip: 1070;
+  --z-toast: 1080;
+}
+
+/* ====== 基础样式重置 ====== */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  color: var(--color-gray-800);
+  background: var(--gradient-page);
+  min-height: 100vh;
+}
+
+/* ====== 无障碍 - 屏幕阅读器专用 ====== */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* ====== 焦点样式优化 ====== */
+:focus-visible {
+  outline: 2px solid var(--color-primary-500);
+  outline-offset: 2px;
+}
+
+/* ====== 选择文本样式 ====== */
+::selection {
+  background-color: rgb(99 102 241 / 0.2);
+  color: var(--color-primary-900);
+}
+
+/* ====== 滚动条美化 ====== */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background-color: var(--color-gray-100);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--color-primary-300);
+  border-radius: var(--radius-full);
+  transition: background-color var(--transition-fast);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-primary-400);
+}
+
+/* ====== 容器系统 ====== */
+.container {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--space-4);
+  padding-right: var(--space-4);
+}
+
+/* 响应式容器宽度 */
+@media (min-width: 640px) {
+  .container { max-width: 640px; }
+}
+
+@media (min-width: 768px) {
+  .container { 
+    max-width: 768px;
+    padding-left: var(--space-6);
+    padding-right: var(--space-6);
+  }
+}
+
+@media (min-width: 1024px) {
+  .container { max-width: 1024px; }
+}
+
+@media (min-width: 1280px) {
+  .container { max-width: 1280px; }
+}
+
+@media (min-width: 1536px) {
+  .container { max-width: 1400px; }
+}
+
+/* ====== GPU 加速优化 ====== */
+.gpu-accelerated {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+.will-change-transform {
+  will-change: transform;
+}
+
+.will-change-opacity {
+  will-change: opacity;
+}
+
+/* ====== 禁用滚动 ====== */
+body.no-scroll {
+  overflow: hidden;
+  padding-right: var(--scrollbar-width, 0);
+}
