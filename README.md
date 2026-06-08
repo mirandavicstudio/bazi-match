@@ -1,4 +1,4 @@
-# 八字合盘匹配系统
+# 基于八字合盘匹配机制的相亲平台
 
 ![Version](https://img.shields.io/badge/version-1.0.0-purple)
 ![Python](https://img.shields.io/badge/python-3.11+-blue)
